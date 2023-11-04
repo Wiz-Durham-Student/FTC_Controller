@@ -61,18 +61,12 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@Autonomous(name="Robot: Auto Drive By Encoder", group="Robot")
+@Autonomous(name="Encoder Autonomous", group="Robot")
 public class Test extends LinearOpMode {
 
     /* Declare OpMode members. */
-    private DcMotor         BLM   = null;
-
-    private DcMotor         BRM  = null;
-
-    private DcMotor         FLM   = null;
-
-    private DcMotor         FRM   = null;
-
+    private DcMotor         leftDrive   = null;
+    private DcMotor         rightDrive  = null;
 
     private ElapsedTime     runtime = new ElapsedTime();
 
@@ -94,37 +88,25 @@ public class Test extends LinearOpMode {
     public void runOpMode() {
 
         // Initialize the drive system variables.
-        BLM = hardwareMap.get(DcMotor.class, "BLM");
-        BRM = hardwareMap.get(DcMotor.class, "BRM");
-        FLM = hardwareMap.get(DcMotor.class, "FLM");
-        FRM = hardwareMap.get(DcMotor.class, "FRM");
+        leftDrive  = hardwareMap.get(DcMotor.class, "BLM");
+        rightDrive = hardwareMap.get(DcMotor.class, "BRM");
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
         // When run, this OpMode should start both motors driving forward. So adjust these two lines based on your first test drive.
         // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
-        BLM.setDirection(DcMotor.Direction.REVERSE);
-        FLM.setDirection(DcMotor.Direction.REVERSE);
-        BRM.setDirection(DcMotor.Direction.FORWARD);
-        FRM.setDirection(DcMotor.Direction.FORWARD);
+        leftDrive.setDirection(DcMotor.Direction.REVERSE);
+        rightDrive.setDirection(DcMotor.Direction.FORWARD);
 
+        leftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        BLM.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        FLM.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        FRM.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        BRM.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        BLM.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        FLM.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        FRM.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        BRM.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Send telemetry message to indicate successful Encoder reset
         telemetry.addData("Starting at",  "%7d :%7d",
-                BLM.getCurrentPosition(),
-                FLM.getCurrentPosition(),
-                BRM.getCurrentPosition(),
-                FRM.getCurrentPosition()
-        );
+                leftDrive.getCurrentPosition(),
+                rightDrive.getCurrentPosition());
         telemetry.update();
 
         // Wait for the game to start (driver presses PLAY)
@@ -132,9 +114,9 @@ public class Test extends LinearOpMode {
 
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        encoderDrive(DRIVE_SPEED, 1,1,1,1,1);  // S1: Forward 47 Inches with 5 Sec timeout
-        encoderDrive(TURN_SPEED, 1,1,1,1,1);  // S2: Turn Right 12 Inches with 4 Sec timeout
-        encoderDrive(DRIVE_SPEED, 1,1,1,1,1);  // S3: Reverse 24 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED,  48,  48, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
+        encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
@@ -150,38 +132,28 @@ public class Test extends LinearOpMode {
      *  3) Driver stops the OpMode running.
      */
     public void encoderDrive(double speed,
-                             double BLMIN, double FLMIN,
-                             double BRMIN, double FRMIN,
+                             double leftInches, double rightInches,
                              double timeoutS) {
-        int newBLMTAR;
-        int newFLMTAR;
-        int newBRMTAR;
-        int newFRMTAR;
+        int newLeftTarget;
+        int newRightTarget;
+
         // Ensure that the OpMode is still active
         if (opModeIsActive()) {
 
             // Determine new target position, and pass to motor controller
-            newBLMTAR = BLM.getCurrentPosition() + (int)(BLMIN * COUNTS_PER_INCH);
-            newFLMTAR = FLM.getCurrentPosition() + (int)(FLMIN * COUNTS_PER_INCH);
-            newBRMTAR = BRM.getCurrentPosition() + (int)(BRMIN * COUNTS_PER_INCH);
-            newFRMTAR = FRM.getCurrentPosition() + (int)(FRMIN * COUNTS_PER_INCH);
-            BLM.setTargetPosition(newBLMTAR);
-            FLM.setTargetPosition(newFLMTAR);
-            BLM.setTargetPosition(newBLMTAR);
-            FLM.setTargetPosition(newFLMTAR);
+            newLeftTarget = leftDrive.getCurrentPosition() + (int)(leftInches * COUNTS_PER_INCH);
+            newRightTarget = rightDrive.getCurrentPosition() + (int)(rightInches * COUNTS_PER_INCH);
+            leftDrive.setTargetPosition(newLeftTarget);
+            rightDrive.setTargetPosition(newRightTarget);
 
             // Turn On RUN_TO_POSITION
-            BLM.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            FLM.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            BRM.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            FRM.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            leftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
             // reset the timeout time and start motion.
             runtime.reset();
-            BLM.setPower(Math.abs(speed));
-            FLM.setPower(Math.abs(speed));
-            BRM.setPower(Math.abs(speed));
-            FRM.setPower(Math.abs(speed));
+            leftDrive.setPower(Math.abs(speed));
+            rightDrive.setPower(Math.abs(speed));
 
             // keep looping while we are still active, and there is time left, and both motors are running.
             // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
@@ -191,29 +163,22 @@ public class Test extends LinearOpMode {
             // onto the next step, use (isBusy() || isBusy()) in the loop test.
             while (opModeIsActive() &&
                     (runtime.seconds() < timeoutS) &&
-                    (BLM.isBusy() && FLM.isBusy() && BRM.isBusy() && FRM.isBusy())) {
+                    (leftDrive.isBusy() && rightDrive.isBusy())) {
 
                 // Display it for the driver.
-                telemetry.addData("Running to",  " %7d :%7d", newBLMTAR, newFLMTAR, newBRMTAR, newFRMTAR);
+                telemetry.addData("Running to",  " %7d :%7d", newLeftTarget,  newRightTarget);
                 telemetry.addData("Currently at",  " at %7d :%7d",
-                        BLM.getCurrentPosition(),
-                        FLM.getCurrentPosition(),
-                        BRM.getCurrentPosition(),
-                        FRM.getCurrentPosition());
+                        leftDrive.getCurrentPosition(), rightDrive.getCurrentPosition());
                 telemetry.update();
             }
 
             // Stop all motion;
-            BLM.setPower(0);
-            FLM.setPower(0);
-            BRM.setPower(0);
-            FRM.setPower(0);
+            leftDrive.setPower(0);
+            rightDrive.setPower(0);
 
             // Turn off RUN_TO_POSITION
-            BLM.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            FLM.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            FRM.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            BRM.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
             sleep(250);   // optional pause after each move.
         }
