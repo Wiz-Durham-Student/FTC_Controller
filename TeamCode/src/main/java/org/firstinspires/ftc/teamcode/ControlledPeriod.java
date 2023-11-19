@@ -33,6 +33,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
@@ -53,11 +54,23 @@ import com.qualcomm.robotcore.util.Range;
 @TeleOp
 public class ControlledPeriod extends LinearOpMode {
     // Declare OpMode members.
+    static final double INCREMENT   = 0.01;     // amount to slew servo each CYCLE_MS cycle
+    static final int    CYCLE_MS    =   50;     // period of each cycle
+    static final double MAX_POS     =  1.0;     // Maximum rotational position
+    static final double MIN_POS     =  0.0;     // Minimum rotational position
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor FRM;
     private DcMotor FLM;
     private DcMotor BRM;
     private DcMotor BLM;
+    private DcMotor Slide;
+    private Servo Claw;
+    double  position = (MAX_POS - MIN_POS) / 2; // Start at halfway position
+    double horizontal = gamepad1.left_stick_x;
+    double vertical = -gamepad1.left_stick_y;
+    double pivot = -gamepad1.right_stick_x;
+    double speed = 1;
+    boolean leftStickIsTrue = false;
 
 
     @Override
@@ -66,23 +79,20 @@ public class ControlledPeriod extends LinearOpMode {
         FLM = hardwareMap.get(DcMotor.class, "FLM");
         BRM  = hardwareMap.get(DcMotor.class, "BRM");
         BLM = hardwareMap.get(DcMotor.class, "BLM");
+        Claw = hardwareMap.get(Servo.class, "ClawServo");
+        Slide = hardwareMap.get(DcMotor.class, "SlideMotor");
 
         FLM.setDirection(DcMotor.Direction.REVERSE);
         FRM.setDirection(DcMotor.Direction.FORWARD);
         BLM.setDirection(DcMotor.Direction.REVERSE);
         BRM.setDirection(DcMotor.Direction.FORWARD);
 
+
         waitForStart();
         runtime.reset();
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-
-            double horizontal = gamepad1.left_stick_x;
-            double vertical = -gamepad1.left_stick_y;
-            double pivot = -gamepad1.right_stick_x;
-            double speed = 1;
-            boolean leftStickIsTrue = false;
 
             if (horizontal != 0 || vertical != 0) leftStickIsTrue = true;
             else if (pivot != 0) leftStickIsTrue = false;
@@ -99,6 +109,26 @@ public class ControlledPeriod extends LinearOpMode {
                 FLM.setPower(pivot);
                 BLM.setPower(pivot);
             }
+
+            if (gamepad2.right_trigger > 0.1 && position < MAX_POS) {
+                position += INCREMENT;
+            }
+            else if (gamepad2.left_trigger > 0.1 && position > MIN_POS) {
+                position -= INCREMENT;
+            }
+            if (gamepad2.right_bumper) {
+                Slide.setPower(0.2);
+            }
+            else if (gamepad2.left_bumper) {
+                Slide.setPower(-0.2);
+            }
+            else if (!gamepad2.left_bumper && !gamepad2.right_bumper) {
+                Slide.setPower(0);
+            }
+            Claw.setPosition(position);
+            sleep(CYCLE_MS);
+            idle();
+            //Slide.setPower(gamepad1.right_trigger);
 
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             //telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
