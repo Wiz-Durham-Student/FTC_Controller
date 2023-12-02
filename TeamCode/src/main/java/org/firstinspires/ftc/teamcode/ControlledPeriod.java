@@ -64,23 +64,31 @@ public class ControlledPeriod extends LinearOpMode {
     private DcMotor BRM;
     private DcMotor BLM;
     private DcMotor Slide;
+    private DcMotor RADCM;
+    private DcMotor LADCM;
     private Servo Claw;
-    double  position = (MAX_POS - MIN_POS) / 2; // Start at halfway position
-    double horizontal = gamepad1.left_stick_x;
-    double vertical = -gamepad1.left_stick_y;
-    double pivot = -gamepad1.right_stick_x;
-    double speed = 1;
-    boolean leftStickIsTrue = false;
+    private Servo Wrist;
+    double  positionClaw = (MAX_POS - MIN_POS) / 2; // Start at halfway position
+    double  positionWrist = (MAX_POS - MIN_POS) / 2; // Start at halfway position
+    static final double     COUNTS_PER_MOTOR_REV    = 1440 ;    // eg: TETRIX Motor Encoder
+    static final double     DRIVE_GEAR_REDUCTION    = 1.0 ;     // No External Gearing.
+    static final double     WHEEL_DIAMETER_INCHES   = 4.0 ;     // For figuring circumference
+    static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) / (WHEEL_DIAMETER_INCHES * 3.1415);
 
 
     @Override
     public void runOpMode() {
+
         FRM  = hardwareMap.get(DcMotor.class, "FRM");
         FLM = hardwareMap.get(DcMotor.class, "FLM");
         BRM  = hardwareMap.get(DcMotor.class, "BRM");
         BLM = hardwareMap.get(DcMotor.class, "BLM");
-        Claw = hardwareMap.get(Servo.class, "ClawServo");
-        Slide = hardwareMap.get(DcMotor.class, "SlideMotor");
+        //RADCM = hardwareMap.get(DcMotor.class, "RADCM");
+        //LADCM = hardwareMap.get(DcMotor.class, "LADCM");
+
+        //Claw = hardwareMap.get(Servo.class, "ClawServo");
+        //Slide = hardwareMap.get(DcMotor.class, "SlideMotor");
+        //Wrist = hardwareMap.get(DcMotor.class, "WristServo");
 
         FLM.setDirection(DcMotor.Direction.REVERSE);
         FRM.setDirection(DcMotor.Direction.FORWARD);
@@ -93,6 +101,11 @@ public class ControlledPeriod extends LinearOpMode {
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
+            double horizontal = gamepad1.left_stick_x;
+            double vertical = -gamepad1.left_stick_y;
+            double pivot = -gamepad1.right_stick_x;
+            double speed = 1;
+            boolean leftStickIsTrue = false;
 
             if (horizontal != 0 || vertical != 0) leftStickIsTrue = true;
             else if (pivot != 0) leftStickIsTrue = false;
@@ -110,11 +123,17 @@ public class ControlledPeriod extends LinearOpMode {
                 BLM.setPower(pivot);
             }
 
-            if (gamepad2.right_trigger > 0.1 && position < MAX_POS) {
-                position += INCREMENT;
+            if (gamepad2.a && positionClaw < MAX_POS) {
+                positionClaw += INCREMENT;
             }
-            else if (gamepad2.left_trigger > 0.1 && position > MIN_POS) {
-                position -= INCREMENT;
+            else if (gamepad2.b && positionClaw > MIN_POS) {
+                positionClaw -= INCREMENT;
+            }
+            if (gamepad2.right_trigger > 0.1 && positionWrist < MAX_POS) {
+                positionWrist += INCREMENT;
+            }
+            else if (gamepad2.left_trigger > 0.1 && positionWrist > MIN_POS) {
+                positionWrist -= INCREMENT;
             }
             if (gamepad2.right_bumper) {
                 Slide.setPower(0.2);
@@ -125,7 +144,20 @@ public class ControlledPeriod extends LinearOpMode {
             else if (!gamepad2.left_bumper && !gamepad2.right_bumper) {
                 Slide.setPower(0);
             }
-            Claw.setPosition(position);
+            if (gamepad2.dpad_up) {
+                RADCM.setPower(0.4);
+                LADCM.setPower(0.4);
+            }
+            else if (gamepad2.dpad_down) {
+                RADCM.setPower(-0.4);
+                LADCM.setPower(-0.4);
+            }
+            else if (!gamepad2.dpad_up && !gamepad2.dpad_down){
+                RADCM.setPower(0);
+                LADCM.setPower(0);
+            }
+            Claw.setPosition(positionClaw);
+            Wrist.setPosition(positionWrist);
             sleep(CYCLE_MS);
             idle();
             //Slide.setPower(gamepad1.right_trigger);
