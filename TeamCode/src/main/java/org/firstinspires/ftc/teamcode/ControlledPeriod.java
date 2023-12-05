@@ -66,6 +66,7 @@ public class ControlledPeriod extends LinearOpMode {
     private DcMotor Slide;
     private DcMotor RADCM;
     private DcMotor LADCM;
+    private DcMotor DroneDc;
     private Servo Claw;
     private Servo Wrist;
     double  positionClaw = (MAX_POS - MIN_POS) / 2; // Start at halfway position
@@ -83,12 +84,14 @@ public class ControlledPeriod extends LinearOpMode {
         FLM = hardwareMap.get(DcMotor.class, "FLM");
         BRM  = hardwareMap.get(DcMotor.class, "BRM");
         BLM = hardwareMap.get(DcMotor.class, "BLM");
-        //RADCM = hardwareMap.get(DcMotor.class, "RADCM");
-        //LADCM = hardwareMap.get(DcMotor.class, "LADCM");
+        RADCM = hardwareMap.get(DcMotor.class, "RADCM");
+        LADCM = hardwareMap.get(DcMotor.class, "LADCM");
 
-        //Claw = hardwareMap.get(Servo.class, "ClawServo");
-        //Slide = hardwareMap.get(DcMotor.class, "SlideMotor");
-        //Wrist = hardwareMap.get(DcMotor.class, "WristServo");
+        Claw = hardwareMap.get(Servo.class, "ClawServo");
+        Slide = hardwareMap.get(DcMotor.class, "SlideMotor");
+        Wrist = hardwareMap.get(Servo.class, "WristServo");
+
+        DroneDc = hardwareMap.get(DcMotor.class, "DroneDc");
 
         FLM.setDirection(DcMotor.Direction.REVERSE);
         FRM.setDirection(DcMotor.Direction.FORWARD);
@@ -106,6 +109,8 @@ public class ControlledPeriod extends LinearOpMode {
             double pivot = -gamepad1.right_stick_x;
             double speed = 1;
             boolean leftStickIsTrue = false;
+            LADCM.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            RADCM.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
             if (horizontal != 0 || vertical != 0) leftStickIsTrue = true;
             else if (pivot != 0) leftStickIsTrue = false;
@@ -130,10 +135,10 @@ public class ControlledPeriod extends LinearOpMode {
                 positionClaw -= INCREMENT;
             }
             if (gamepad2.right_trigger > 0.1 && positionWrist < MAX_POS) {
-                positionWrist += INCREMENT;
+                positionWrist += INCREMENT * gamepad2.right_trigger;
             }
             else if (gamepad2.left_trigger > 0.1 && positionWrist > MIN_POS) {
-                positionWrist -= INCREMENT;
+                positionWrist -= INCREMENT * gamepad2.left_trigger;
             }
             if (gamepad2.right_bumper) {
                 Slide.setPower(0.2);
@@ -155,6 +160,12 @@ public class ControlledPeriod extends LinearOpMode {
             else if (!gamepad2.dpad_up && !gamepad2.dpad_down){
                 RADCM.setPower(0);
                 LADCM.setPower(0);
+            }
+            if (gamepad2.y) {
+                DroneDc.setPower(1);
+            }
+            else {
+                DroneDc.setPower(0);
             }
             Claw.setPosition(positionClaw);
             Wrist.setPosition(positionWrist);
